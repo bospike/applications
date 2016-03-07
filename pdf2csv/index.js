@@ -101,7 +101,8 @@ function printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases){
 }
 
 var _onPDFBinDataReady = function (pdf) {
-  writer.pipe(fs.createWriteStream('./out.csv'));
+  var csv_file = pdf.pdfFilePath.replace(/\.PDF/i, '.csv');
+  writer.pipe(fs.createWriteStream(csv_file));
   
   for (var i in pdf.data.Pages) {
     var page = pdf.data.Pages[i];
@@ -229,7 +230,8 @@ pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
 
 pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
 
-var pdfFilePath = '1.PDF';
+var args = process.argv.slice(2);
 
-// Load the pdf. When it is loaded your data ready function will be called.
-pdfParser.loadPDF(pdfFilePath);
+_.each(args, function(file){
+  pdfParser.loadPDF(file);
+});
