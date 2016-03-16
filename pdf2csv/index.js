@@ -4,8 +4,6 @@ var fs = require('fs');
 var csvWriter = require('csv-write-stream');
 var writer = csvWriter();
 
-var pdfParser = new PDFParser();
-
 function equal(first, second){
   return Math.abs(first - second) <= 0.1;
 }
@@ -101,10 +99,14 @@ function printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases){
 }
 
 var _onPDFBinDataReady = function (pdf) {
-  var csv_file = pdf.pdfFilePath.replace(/\.PDF/i, '.csv');
-  writer.pipe(fs.createWriteStream(csv_file));
+  // var csv_file = pdf.pdfFilePath.replace(/\.PDF/i, '.csv');
+  // writer.pipe(fs.createWriteStream(csv_file));
+  writer.pipe(pdf.output);
+  console.log(pdf);
+  // writer.pipe(res);
   
   for (var i in pdf.data.Pages) {
+    console.log('page');
     var page = pdf.data.Pages[i];
     var newPage = true;
     var newLine = true;
@@ -123,7 +125,7 @@ var _onPDFBinDataReady = function (pdf) {
     var leaseNumber;
     var DOI;
     var interestType;
-    for (var j in page.Texts) { 
+    for (var j in page.Texts) {
       var text = page.Texts[j];
       var T = text.R[0].T.trim();
       
@@ -220,18 +222,82 @@ var _onPDFBinDataReady = function (pdf) {
   pushLeases();
   printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
   writer.end()
+  console.log('closed');
 };
 
 var _onPDFBinDataError = function (error) {
   console.log(error);
 };
 
+// var args = process.argv.slice(2);
+
+// _.each(args, function(file){
+//   pdfParser.loadPDF(file);
+// });
+
+var pdfParser = new PDFParser();
 pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
 
 pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
 
-var args = process.argv.slice(2);
+var express = require('express');
+var multer = require('multer'),
+  bodyParser = require('body-parser'),
+  path = require('path');
 
-_.each(args, function(file){
-  pdfParser.loadPDF(file);
+var app = new express();
+app.use(bodyParser.json());
+
+var timeout = require('connect-timeout'); //express v4
+
+app.use(timeout(1200000));
+app.use(haltOnTimedout);
+
+function haltOnTimedout(req, res, next){
+  if (!req.timedout) next();
+}
+// view engine setup
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+
+app.get('/', function(req, res){
+  res.render('index');
 });
+
+var response;
+app.post('/', multer({ dest: './uploads/'}).single('upl'), function(req,res){
+  console.log(req.body); //form fields
+  /* example output:
+  { title: 'abc' }
+   */
+  console.log(req.file); //form files
+  /* example output:
+            { fieldname: 'upl',
+              originalname: 'grumpy.png',
+              encoding: '7bit',
+              mimetype: 'image/png',
+              destination: './uploads/',
+              filename: '436ec561793aa4dc475a88e84776b1b9',
+              path: 'uploads/436ec561793aa4dc475a88e84776b1b9',
+              size: 277056 }
+   */
+  res.setHeader('Content-disposition', 'attachment; filename=' + req.file.originalname.replace(/\.PDF/i, '.csv'));
+  res.set('Content-Type', 'text/csv');
+  res.connection.setTimeout(0);
+  console.log('parser');
+  console.log(req.file.path);
+  console.log(pdfParser);
+  // res.pipe(pdfParser);
+  // res.pipe(pdfParser);
+  response = res;
+
+  pdfParser.output = res;
+  pdfParser.loadPDF(req.file.path);
+  console.log('parser');
+  // res.end();
+});
+
+var port = 3000;
+app.listen( port, function(){ console.log('listening on port '+port); } );
+
+// https://www.codementor.io/tips/9172397814/setup-file-uploading-in-an-express-js-application-using-multer-js
