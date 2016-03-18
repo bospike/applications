@@ -247,8 +247,10 @@ var multer = require('multer'),
 
 var app = new express();
 app.use(bodyParser.json());
-
 var timeout = require('connect-timeout'); //express v4
+
+var basicAuth = require('basic-auth-connect');
+app.use(basicAuth('test', 'pass'));
 
 app.use(timeout(1200000));
 app.use(haltOnTimedout);
@@ -297,7 +299,7 @@ app.post('/', multer({ dest: './uploads/'}).single('upl'), function(req,res){
   // res.end();
 });
 
-var port = 3000;
+var port = process.env.PORT || 3000;
 app.listen( port, function(){ console.log('listening on port '+port); } );
 
 // https://www.codementor.io/tips/9172397814/setup-file-uploading-in-an-express-js-application-using-multer-js
