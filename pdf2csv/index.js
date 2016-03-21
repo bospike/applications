@@ -178,6 +178,8 @@ var _onPDFBinDataReady = function (pdf) {
         
         if (newLine && ownerNameLines && ownerNameLine){
           if (ownerNameLine.match(/^ REAL VALUE$/i)){
+            pushLeases();
+            printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
             stopParsing = true;
           }
 
@@ -246,7 +248,7 @@ var _onPDFBinDataReady = function (pdf) {
         lastLineY = lineY;
       }
       
-    if (i == pdf.data.Pages.length - 1){
+    if (!stopParsing && i == pdf.data.Pages.length - 1){
       pushLeases();
       printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
     }
