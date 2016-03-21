@@ -2,8 +2,28 @@ html
     head
         title
     body
-        form(method="post",enctype="multipart/form-data",action="/")
+        style.
+            table,th,td{
+               border: solid black 1px;}
+        form(method="post",enctype="multipart/form-data",action="/parse")
             p
                 input(type="file",name="upl")
             p
                 input(type="submit")
+
+        table
+            thead
+                tr
+                    th Filename
+                    th CSV File
+                    th Uploaded
+                    th Ready
+            tbody
+            - for (var r in rows)
+                tr
+                    td= rows[r].pdf_file_name
+                    td
+                        a(href=rows[r].upload_file_name + '.csv')
+                            span= rows[r].upload_file_name + '.csv'
+                    td= rows[r].uploaded
+                    td= rows[r].ready

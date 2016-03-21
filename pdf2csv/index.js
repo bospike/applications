@@ -2,7 +2,9 @@ var _ = require('underscore'),
     PDFParser = require('pdf2json');
 var fs = require('fs');
 var csvWriter = require('csv-write-stream');
-var writer = csvWriter();
+
+
+var sqlite3 = require('sqlite3').verbose();
 
 function equal(first, second){
   return Math.abs(first - second) <= 0.1;
@@ -98,65 +100,54 @@ function printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases){
   }
 }
 
+var oldPercent = 0;
+function updatePercent(file, percent, callback){
+  if (percent !== oldPercent){
+    oldPercent = percent;
+    var db = new sqlite3.Database('./files.db');
+    db.serialize(function() {
+      var stmt = db.prepare("UPDATE file_info SET ready = ? WHERE upload_file_name = ?");
+      stmt.bind(percent, file);
+      stmt.run(function(){
+        callback();
+        stmt.finalize();
+        db.close();
+      });
+    });
+  }
+  else{
+    oldPercent = percent;
+    callback();
+  }
+}
 var _onPDFBinDataReady = function (pdf) {
-  // var csv_file = pdf.pdfFilePath.replace(/\.PDF/i, '.csv');
-  // writer.pipe(fs.createWriteStream(csv_file));
-  writer.pipe(pdf.output);
-  console.log(pdf);
-  // writer.pipe(res);
-  
+  var pdf_file_name = pdf.pdfFilePath;
+  var csv_file = pdf.pdfFilePath + '.csv';
+
+  var writer = csvWriter();
+  writer.pipe(fs.createWriteStream(csv_file));
+
+  var stopParsing = false;
   for (var i in pdf.data.Pages) {
-    console.log('page');
-    var page = pdf.data.Pages[i];
-    var newPage = true;
-    var newLine = true;
-    var lastLineY, lineY;
-    var ownerNameLines;
-    var ownerNameLine = '';
-    var leases;
-    var leaseLine = '';
-    var leaseLines;
-    var operatorLine = '';
-    var operatorLines;
+      var percent = Math.floor(i / pdf.data.Pages.length * 100);
+      var page = pdf.data.Pages[i];
+      var newPage = true;
+      var newLine = true;
+      var lastLineY, lineY;
+      var ownerNameLines;
+      var ownerNameLine = '';
+      var leases;
+      var leaseLine = '';
+      var leaseLines;
+      var operatorLine = '';
+      var operatorLines;
 
-    var taxRollYear;
-    var ownerNumber;
-    var ownerName;
-    var leaseNumber;
-    var DOI;
-    var interestType;
-    for (var j in page.Texts) {
-      var text = page.Texts[j];
-      var T = text.R[0].T.trim();
-      
-      lineY = text.y;
-      newLine = lineY !== lastLineY;
-      
-      if (newLine && ownerNameLines && ownerNameLine){
-        if (!ownerNameLine.match(/^ NAME AND ADDRESS$/i)){
-          ownerNameLines.push(ownerNameLine.trim());
-          ownerNameLine = '';
-        }
-      }
-      
-      if (newPage && equal(text.x, 33.575) && T.match(/^\d{4}$/)){
-        taxRollYear = T;
-        newPage = false;
-      }
-      if (equal(text.y, 4.32) || equal(text.y, 37.2) || (equal(text.y, 3.195))){
-        continue;
-      }
-
-      if (newLine && leaseLines){
-        leaseLines.push(leaseLine.trim());
-        leaseLine = '';
-      }
-
-      if (newLine && operatorLines){
-        operatorLines.push(operatorLine.trim());
-        operatorLine = '';
-      }
-
+      var taxRollYear;
+      var ownerNumber;
+      var ownerName;
+      var leaseNumber;
+      var DOI;
+      var interestType;
       function pushLeases(){
         if (leaseNumber){
           leases.push({
@@ -178,51 +169,92 @@ var _onPDFBinDataReady = function (pdf) {
         leaseNumber = '';
         appraisalType = ''
       }
-      if (equal(text.x + convertToRel(text.w), 11.3) && T.match(/^\d+$/)){
-        pushLeases();
-        printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
-        ownerNumber = T;
-        ownerNameLines = [];
-        ownerNameLine = '';
-        leases = [];
-      }
+      for (var j in page.Texts) {
+        var text = page.Texts[j];
+        var T = text.R[0].T.trim();
+        
+        lineY = text.y;
+        newLine = lineY !== lastLineY;
+        
+        if (newLine && ownerNameLines && ownerNameLine){
+          if (ownerNameLine.match(/^ REAL VALUE$/i)){
+            stopParsing = true;
+          }
 
-      if (textInInterval(text, 19.55, 44.3)){
-        ownerNameLine = ownerNameLine + ' ' + T;
-      }
+          if (!ownerNameLine.match(/^ NAME AND ADDRESS$/i)){
+            ownerNameLines.push(ownerNameLine.trim());
+            ownerNameLine = '';
+          }
+        }
+        
+        if (newPage && equal(text.x, 33.575) && T.match(/^\d{4}$/)){
+          taxRollYear = T;
+          newPage = false;
+        }
+        if (stopParsing || equal(text.y, 4.32) || equal(text.y, 37.2) || (equal(text.y, 3.195))){
+          continue;
+        }
 
-      if(equal(text.x + convertToRel(text.w), 50.9) && leases){
-        pushLeases();
-        leaseNumber = T;
-      }
+        if (newLine && leaseLines){
+          leaseLines.push(leaseLine.trim());
+          leaseLine = '';
+        }
 
-      if (equal(text.x, 47.6) && leases){
-        appraisalType = T;
-      }
+        if (newLine && operatorLines){
+          operatorLines.push(operatorLine.trim());
+          operatorLine = '';
+        }
 
-      if (textInInterval(text, 51.725, 78.0)){
-        leaseLine = leaseLine + ' ' + T;
-      }
+        if (equal(text.x + convertToRel(text.w), 11.3) && T.match(/^\d+$/)){
+          pushLeases();
+          printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
+          ownerNumber = T;
+          ownerNameLines = [];
+          ownerNameLine = '';
+          leases = [];
+        }
 
-      if (textInInterval(text, 78.95, 85.55)){
-        DOI += ' ' + T;
-      }
+        if (textInInterval(text, 19.55, 44.3)){
+          ownerNameLine = ownerNameLine + ' ' + T;
+        }
 
-      if (textInInterval(text, 85.55, 88.0)){
-        interestType += ' ' + T;
-      }
+        if(equal(text.x + convertToRel(text.w), 50.9) && leases){
+          pushLeases();
+          leaseNumber = T;
+        }
 
-      if (textInInterval(text, 92.975, 122.0)){
-        operatorLine += ' ' + T;
-      }
+        if (equal(text.x, 47.6) && leases){
+          appraisalType = T;
+        }
 
-      lastLineY = lineY;
+        if (textInInterval(text, 51.725, 78.0)){
+          leaseLine = leaseLine + ' ' + T;
+        }
+
+        if (textInInterval(text, 78.95, 85.55)){
+          DOI += ' ' + T;
+        }
+
+        if (textInInterval(text, 85.55, 88.0)){
+          interestType += ' ' + T;
+        }
+
+        if (textInInterval(text, 92.975, 122.0)){
+          operatorLine += ' ' + T;
+        }
+
+        lastLineY = lineY;
+      }
+      
+    if (i == pdf.data.Pages.length - 1){
+      pushLeases();
+      printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
     }
   }
-  pushLeases();
-  printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
-  writer.end()
-  console.log('closed');
+  updatePercent(pdf_file_name, 100, function(){
+
+    writer.end()
+  });
 };
 
 var _onPDFBinDataError = function (error) {
@@ -235,15 +267,11 @@ var _onPDFBinDataError = function (error) {
 //   pdfParser.loadPDF(file);
 // });
 
-var pdfParser = new PDFParser();
-pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
-
-pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
 
 var express = require('express');
 var multer = require('multer'),
-  bodyParser = require('body-parser'),
-  path = require('path');
+    bodyParser = require('body-parser'),
+    path = require('path');
 
 var app = new express();
 app.use(bodyParser.json());
@@ -263,43 +291,63 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
 app.get('/', function(req, res){
-  res.render('index');
+  indexPage(res, function(){});
 });
 
-var response;
-app.post('/', multer({ dest: './uploads/'}).single('upl'), function(req,res){
-  console.log(req.body); //form fields
-  /* example output:
-  { title: 'abc' }
-   */
-  console.log(req.file); //form files
-  /* example output:
-            { fieldname: 'upl',
-              originalname: 'grumpy.png',
-              encoding: '7bit',
-              mimetype: 'image/png',
-              destination: './uploads/',
-              filename: '436ec561793aa4dc475a88e84776b1b9',
-              path: 'uploads/436ec561793aa4dc475a88e84776b1b9',
-              size: 277056 }
-   */
-  res.setHeader('Content-disposition', 'attachment; filename=' + req.file.originalname.replace(/\.PDF/i, '.csv'));
-  res.set('Content-Type', 'text/csv');
+app.post('/parse', multer({ dest: './uploads/'}).single('upl'), function(req,res){
+
   res.connection.setTimeout(0);
-  console.log('parser');
-  console.log(req.file.path);
-  console.log(pdfParser);
-  // res.pipe(pdfParser);
-  // res.pipe(pdfParser);
-  response = res;
 
-  pdfParser.output = res;
-  pdfParser.loadPDF(req.file.path);
-  console.log('parser');
-  // res.end();
+  var pdfParser = new PDFParser();
+  pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
+
+  pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
+  if (req.file){
+    insertFile(req.file, function(){
+      pdfParser.loadPDF(req.file.path);
+      res.redirect('/');
+    });
+  }
+  else{
+    res.redirect('/');
+  }
 });
+
+function insertFile(file, callback){
+  oldPercent = -1;
+  var db = new sqlite3.Database('./files.db');
+
+  db.serialize(function() {
+
+    var stmt = db.prepare("INSERT INTO file_info (pdf_file_name, upload_file_name) VALUES (?,?)");
+    stmt.bind(file.originalname, file.path);
+    stmt.run(function(){
+      stmt.finalize();
+      db.close();
+      callback();      
+    });
+  });
+
+}
+function indexPage(res, callback){
+  var db = new sqlite3.Database('./files.db');
+
+  db.serialize(function() {
+
+    db.run('CREATE TABLE if not exists file_info (pdf_file_name TEXT, upload_file_name TEXT, ready INTEGER default 0, uploaded DATETIME DEFAULT CURRENT_TIMESTAMP)');
+
+    db.all('select * from file_info', function(err, rows) {
+            
+            res.render('index', {rows: rows});
+            db.close();
+            callback();
+    });
+  });
+
+}
 
 var port = process.env.PORT || 3000;
+app.use('/uploads', express.static(__dirname + '/uploads'));
 app.listen( port, function(){ console.log('listening on port '+port); } );
 
 // https://www.codementor.io/tips/9172397814/setup-file-uploading-in-an-express-js-application-using-multer-js
