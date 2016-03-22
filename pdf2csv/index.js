@@ -296,6 +296,23 @@ app.get('/', function(req, res){
   indexPage(res, function(){});
 });
 
+app.get('/delete/:id', function(req, res) {
+  var id = 'uploads/' + req.params.id;
+  var db = new sqlite3.Database('./files.db');
+
+  db.serialize(function() {
+
+    var stmt = db.prepare("DELETE FROM file_info WHERE upload_file_name = ?");
+    stmt.bind(id);
+    stmt.run(function(){
+      stmt.finalize();
+      db.close();
+      res.redirect('/');
+    });
+  });
+
+});
+
 app.post('/parse', multer({ dest: './uploads/'}).single('upl'), function(req,res){
 
   res.connection.setTimeout(0);

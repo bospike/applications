@@ -18,6 +18,7 @@ html
                     th CSV File
                     th Uploaded
                     th Ready
+                    th Action
             tbody
             - for (var r in rows)
                 tr
@@ -27,3 +28,5 @@ html
                             span= rows[r].upload_file_name + '.csv'
                     td= rows[r].uploaded
                     td= rows[r].ready
+                    td
+                        a(href="delete/#{rows[r].upload_file_name.replace('uploads/', '')}") delete
