@@ -82,7 +82,7 @@ function printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases){
         leaseName: _.first(leaseLines),
         appraisalType: lease.appraisalType,
         RRC: _.compact(_.map(leaseLines, function(line){
-          var match = line.match(/^(RRC\s+(\d+)).*$/);
+          var match = line.match(/(RRC\s+(\d+))/im);
           if (match){
             return match[2];
           }
@@ -355,3 +355,5 @@ function indexPage(res, callback){
 var port = process.env.PORT || 3000;
 app.use('/uploads', express.static(__dirname + '/uploads'));
 app.listen( port, function(){ console.log('listening on port '+port); } );
+
+// forever start app.js -c "node --stack_size=8192 --max-old-space-size=8192"
