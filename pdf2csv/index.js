@@ -263,13 +263,6 @@ var _onPDFBinDataError = function (error) {
   console.log(error);
 };
 
-// var args = process.argv.slice(2);
-
-// _.each(args, function(file){
-//   pdfParser.loadPDF(file);
-// });
-
-
 var express = require('express');
 var multer = require('multer'),
     bodyParser = require('body-parser'),
@@ -277,18 +270,12 @@ var multer = require('multer'),
 
 var app = new express();
 app.use(bodyParser.json());
-var timeout = require('connect-timeout'); //express v4
+
+var timeout = require('connect-timeout');
 
 var basicAuth = require('basic-auth-connect');
 app.use(basicAuth('test', 'pass'));
 
-app.use(timeout(1200000));
-app.use(haltOnTimedout);
-
-function haltOnTimedout(req, res, next){
-  if (!req.timedout) next();
-}
-// view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
@@ -368,5 +355,3 @@ function indexPage(res, callback){
 var port = process.env.PORT || 3000;
 app.use('/uploads', express.static(__dirname + '/uploads'));
 app.listen( port, function(){ console.log('listening on port '+port); } );
-
-// https://www.codementor.io/tips/9172397814/setup-file-uploading-in-an-express-js-application-using-multer-js
