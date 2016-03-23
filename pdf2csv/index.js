@@ -255,7 +255,12 @@ var _onPDFBinDataReady = function (pdf) {
   }
   updatePercent(pdf_file_name, 100, function(){
 
+    pdf.destroy();
+    pdf = null;
     writer.end()
+    writer.destroy();
+    writer = null;
+    console.log('finished');
   });
 };
 
@@ -300,17 +305,16 @@ app.get('/delete/:id', function(req, res) {
 
 });
 
+var pdfParser = new PDFParser();
+pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
+
+pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
 app.post('/parse', multer({ dest: './uploads/'}).single('upl'), function(req,res){
 
-  res.connection.setTimeout(0);
-
-  var pdfParser = new PDFParser();
-  pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
-
-  pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
   if (req.file){
     insertFile(req.file, function(){
       pdfParser.loadPDF(req.file.path);
+      // pdfParser = null;
       res.redirect('/');
     });
   }
@@ -356,4 +360,4 @@ var port = process.env.PORT || 3000;
 app.use('/uploads', express.static(__dirname + '/uploads'));
 app.listen( port, function(){ console.log('listening on port '+port); } );
 
-// forever start app.js -c "node --stack_size=8192 --max-old-space-size=8192"
+// http://stackoverflow.com/questions/12901358/starting-node-js-using-forever-with-nouse-idle-notification-and-other-flags
