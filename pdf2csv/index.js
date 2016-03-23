@@ -148,27 +148,6 @@ var _onPDFBinDataReady = function (pdf) {
       var leaseNumber;
       var DOI;
       var interestType;
-      function pushLeases(){
-        if (leaseNumber){
-          leases.push({
-            leaseNumber: leaseNumber,
-            leases: leaseLines,
-            DOI: DOI.trim(),
-            interestType: interestType.trim(),
-            operatorLines: operatorLines,
-            appraisalType: appraisalType
-          });
-        }
-        leaseLines = [];
-        DOI = '';
-        interestType = '';
-        operatorLines = [];
-        operatorLine = '';
-        interestType = '';
-        leaseLine = '';
-        leaseNumber = '';
-        appraisalType = ''
-      }
       for (var j in page.Texts) {
         var text = page.Texts[j];
         var T = text.R[0].T.trim();
@@ -178,7 +157,28 @@ var _onPDFBinDataReady = function (pdf) {
         
         if (newLine && ownerNameLines && ownerNameLine){
           if (ownerNameLine.match(/^ REAL VALUE$/i)){
-            pushLeases();
+            // pushLeases();
+            //      function pushLeases(){
+                    if (leaseNumber){
+                      leases.push({
+                        leaseNumber: leaseNumber,
+                        leases: leaseLines,
+                        DOI: DOI.trim(),
+                        interestType: interestType.trim(),
+                        operatorLines: operatorLines,
+                        appraisalType: appraisalType
+                      });
+                    }
+                    leaseLines = [];
+                    DOI = '';
+                    interestType = '';
+                    operatorLines = [];
+                    operatorLine = '';
+                    interestType = '';
+                    leaseLine = '';
+                    leaseNumber = '';
+                    appraisalType = ''
+              //    }
             printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
             stopParsing = true;
           }
@@ -208,7 +208,28 @@ var _onPDFBinDataReady = function (pdf) {
         }
 
         if (equal(text.x + convertToRel(text.w), 11.3) && T.match(/^\d+$/)){
-          pushLeases();
+          // pushLeases();
+          //      function pushLeases(){
+                  if (leaseNumber){
+                    leases.push({
+                      leaseNumber: leaseNumber,
+                      leases: leaseLines,
+                      DOI: DOI.trim(),
+                      interestType: interestType.trim(),
+                      operatorLines: operatorLines,
+                      appraisalType: appraisalType
+                    });
+                  }
+                  leaseLines = [];
+                  DOI = '';
+                  interestType = '';
+                  operatorLines = [];
+                  operatorLine = '';
+                  interestType = '';
+                  leaseLine = '';
+                  leaseNumber = '';
+                  appraisalType = ''
+            //    }
           printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
           ownerNumber = T;
           ownerNameLines = [];
@@ -221,7 +242,28 @@ var _onPDFBinDataReady = function (pdf) {
         }
 
         if(equal(text.x + convertToRel(text.w), 50.9) && leases){
-          pushLeases();
+          // pushLeases();
+          //      function pushLeases(){
+                  if (leaseNumber){
+                    leases.push({
+                      leaseNumber: leaseNumber,
+                      leases: leaseLines,
+                      DOI: DOI.trim(),
+                      interestType: interestType.trim(),
+                      operatorLines: operatorLines,
+                      appraisalType: appraisalType
+                    });
+                  }
+                  leaseLines = [];
+                  DOI = '';
+                  interestType = '';
+                  operatorLines = [];
+                  operatorLine = '';
+                  interestType = '';
+                  leaseLine = '';
+                  leaseNumber = '';
+                  appraisalType = ''
+            //    }
           leaseNumber = T;
         }
 
@@ -247,9 +289,31 @@ var _onPDFBinDataReady = function (pdf) {
 
         lastLineY = lineY;
       }
-      
+    
+    page = undefined;  
     if (!stopParsing && i == pdf.data.Pages.length - 1){
-      pushLeases();
+      // pushLeases();
+      //      function pushLeases(){
+              if (leaseNumber){
+                leases.push({
+                  leaseNumber: leaseNumber,
+                  leases: leaseLines,
+                  DOI: DOI.trim(),
+                  interestType: interestType.trim(),
+                  operatorLines: operatorLines,
+                  appraisalType: appraisalType
+                });
+              }
+              leaseLines = [];
+              DOI = '';
+              interestType = '';
+              operatorLines = [];
+              operatorLine = '';
+              interestType = '';
+              leaseLine = '';
+              leaseNumber = '';
+              appraisalType = ''
+        //    }
       printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases);
     }
   }
