@@ -276,8 +276,6 @@ var multer = require('multer'),
 var app = new express();
 app.use(bodyParser.json());
 
-var timeout = require('connect-timeout');
-
 var basicAuth = require('basic-auth-connect');
 app.use(basicAuth('test', 'pass'));
 
@@ -305,14 +303,15 @@ app.get('/delete/:id', function(req, res) {
 
 });
 
-var pdfParser = new PDFParser();
-pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
-
-pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
 app.post('/parse', multer({ dest: './uploads/'}).single('upl'), function(req,res){
 
   if (req.file){
     insertFile(req.file, function(){
+      var pdfParser = new PDFParser();
+      pdfParser.on('pdfParser_dataReady', _.bind(_onPDFBinDataReady, this));
+
+      pdfParser.on('pdfParser_dataError', _.bind(_onPDFBinDataError, this));
+
       pdfParser.loadPDF(req.file.path);
       // pdfParser = null;
       res.redirect('/');
