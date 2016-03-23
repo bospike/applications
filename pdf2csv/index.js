@@ -148,7 +148,7 @@ var _onPDFBinDataReady = function (pdf) {
       var leaseNumber;
       var DOI;
       var interestType;
-      for (var j in page.Texts) {
+      for (var j in page.Texts){
         var text = page.Texts[j];
         var T = text.R[0].T.trim();
         
@@ -159,12 +159,12 @@ var _onPDFBinDataReady = function (pdf) {
           if (ownerNameLine.match(/^ REAL VALUE$/i)){
             // pushLeases();
             //      function pushLeases(){
-                    if (leaseNumber){
+                    if (leaseNumber && leaseNumber){
                       leases.push({
                         leaseNumber: leaseNumber,
                         leases: leaseLines,
-                        DOI: DOI.trim(),
-                        interestType: interestType.trim(),
+                        DOI: DOI && DOI.trim(),
+                        interestType: interestType && interestType.trim(),
                         operatorLines: operatorLines,
                         appraisalType: appraisalType
                       });
@@ -210,12 +210,12 @@ var _onPDFBinDataReady = function (pdf) {
         if (equal(text.x + convertToRel(text.w), 11.3) && T.match(/^\d+$/)){
           // pushLeases();
           //      function pushLeases(){
-                  if (leaseNumber){
+                  if (leaseNumber && leaseNumber){
                     leases.push({
                       leaseNumber: leaseNumber,
                       leases: leaseLines,
-                      DOI: DOI.trim(),
-                      interestType: interestType.trim(),
+                      DOI: DOI && DOI.trim(),
+                      interestType: interestType && interestType.trim(),
                       operatorLines: operatorLines,
                       appraisalType: appraisalType
                     });
@@ -244,12 +244,12 @@ var _onPDFBinDataReady = function (pdf) {
         if(equal(text.x + convertToRel(text.w), 50.9) && leases){
           // pushLeases();
           //      function pushLeases(){
-                  if (leaseNumber){
+                  if (leaseNumber && leaseNumber){
                     leases.push({
                       leaseNumber: leaseNumber,
                       leases: leaseLines,
-                      DOI: DOI.trim(),
-                      interestType: interestType.trim(),
+                      DOI: DOI && DOI.trim(),
+                      interestType: interestType && interestType.trim(),
                       operatorLines: operatorLines,
                       appraisalType: appraisalType
                     });
@@ -294,12 +294,12 @@ var _onPDFBinDataReady = function (pdf) {
     if (!stopParsing && i == pdf.data.Pages.length - 1){
       // pushLeases();
       //      function pushLeases(){
-              if (leaseNumber){
+              if (leaseNumber && leaseNumber){
                 leases.push({
                   leaseNumber: leaseNumber,
                   leases: leaseLines,
-                  DOI: DOI.trim(),
-                  interestType: interestType.trim(),
+                  DOI: DOI && DOI.trim(),
+                  interestType: interestType && interestType.trim(),
                   operatorLines: operatorLines,
                   appraisalType: appraisalType
                 });
