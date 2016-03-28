@@ -82,6 +82,7 @@ function printLines(writer, taxRollYear, ownerNumber, ownerNameLines, leases){
         leaseName: _.first(leaseLines),
         appraisalType: lease.appraisalType,
         RRC: _.compact(_.map(leaseLines, function(line){
+          line = decodeURIComponent(line).replace(/\s+/g, ' ');
           var match = line.match(/(RRC\s+#?(\d+))/im);
           if (match){
             return match[2];
